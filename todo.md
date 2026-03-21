@@ -56,12 +56,12 @@
 - [ ] Página de histórico de notificações
 
 ## Phase 9: Documentação
-- [ ] Documentação de setup Supabase (RLS, variáveis de ambiente)
-- [ ] Guia de configuração de variáveis de ambiente
-- [ ] Instruções de deploy na Vercel
-- [ ] Documentação de API endpoints
-- [ ] Guia de integração com WhatsApp (estrutura preparada)
-- [ ] Troubleshooting e FAQ
+- [x] Documentação de setup Supabase (RLS, variáveis de ambiente) - INTEGRATION_GUIDE.md
+- [x] Guia de configuração completo com passo a passo - SETUP_GUIDE.md
+- [x] Instruções de deploy na Vercel - DEPLOYMENT_GUIDE.md
+- [x] Guia de uso e modificações de código - USAGE_GUIDE.md
+- [x] README com visão geral da arquitetura - README_PROJECT.md
+- [x] Guia de integração com WhatsApp (estrutura preparada)
 
 ## Completed Features
 - [x] Projeto Next.js inicializado com Supabase
