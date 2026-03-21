@@ -65,3 +65,17 @@
 
 ## Completed Features
 - [x] Projeto Next.js inicializado com Supabase
+
+
+## Phase 10: Migrar para Supabase Auth
+- [x] Instalar @supabase/supabase-js e @supabase/auth-helpers-react
+- [x] Criar cliente Supabase no frontend (client/src/lib/supabase.ts)
+- [x] Implementar AuthProvider com Supabase (client/src/contexts/AuthContext.tsx)
+- [x] Criar página de login com email/senha (client/src/pages/Login.tsx)
+- [x] Criar página de registro com tenant_id (client/src/pages/Signup.tsx)
+- [x] Implementar logout
+- [x] Criar hook de autenticação (client/src/hooks/useSupabaseAuth.ts)
+- [x] Criar cliente Supabase Admin (server/_core/supabase.ts)
+- [x] Atualizar variáveis de ambiente (server/_core/env.ts)
+- [ ] Testar fluxo completo de autenticação
+- [ ] Atualizar contexto tRPC para usar Supabase Auth (próximo passo)
