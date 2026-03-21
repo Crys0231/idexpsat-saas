@@ -1,8 +1,9 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import { ENV } from "./env";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -28,11 +29,12 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
+      const tenantId = (userInfo as any)?.tenantId || ENV.ownerOpenId;
       await db.upsertUser({
         openId: userInfo.openId,
+        tenantId,
+        email: userInfo.email || "noemail@example.com",
         name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
       });
 
