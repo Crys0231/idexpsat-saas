@@ -36,7 +36,7 @@ O IDExpSat SaaS é uma plataforma de pesquisas de satisfação multi-tenant com 
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  - Row Level Security (RLS) para multi-tenant    │   │
 │  │  - 12 tabelas com tenant_id                      │   │
-│  │  - Autenticação OAuth integrada                  │   │
+│  │  - Autenticação Supabase integrada                  │   │
 │  │  - Backups automáticos                           │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
@@ -60,13 +60,13 @@ Antes de começar, certifique-se de ter:
 - **Supabase**: https://supabase.com (gratuito)
 - **Vercel**: https://vercel.com (gratuito)
 - **GitHub**: https://github.com (para versionamento)
-- **Manus** (para OAuth): Já configurado no template
+- **Supabase Auth**: Configurado para gestão de usuários
 
 ### Conhecimento Necessário
 
 - Conceitos básicos de SQL
 - Familiaridade com Node.js/TypeScript
-- Noções de autenticação OAuth
+- Noções de autenticação Supabase
 - Entendimento de APIs REST/tRPC
 
 ---
@@ -138,10 +138,10 @@ EVOLUTION_API_URL=https://sua-evolution-api.com
 EVOLUTION_API_KEY=sua-api-key-global
 EVOLUTION_INSTANCE_NAME=idexpsat
 
-# OAuth (Manus)
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
-VITE_APP_ID=[seu-app-id-manus]
+# Supabase Config
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
+SUPABASE_SERVICE_ROLE_KEY=[sua-chave-service-role]
 
 # App URLs
 VITE_APP_URL=http://localhost:5173
@@ -187,7 +187,7 @@ Este arquivo já existe, mas precisa ser completado com as funções necessária
 // server/db.ts - No topo do arquivo
 
 import { eq, and, or } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/PostgreSQL2";
 import { 
   users, 
   tenants, 
@@ -1138,8 +1138,8 @@ SUPABASE_ANON_KEY=[sua-chave-anon]
 SUPABASE_SERVICE_ROLE_KEY=[sua-chave-service-role]
 
 # OAuth
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
 VITE_APP_ID=[seu-app-id]
 
 # Security

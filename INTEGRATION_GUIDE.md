@@ -11,7 +11,7 @@ A plataforma utiliza **Row Level Security (RLS)** do Supabase para garantir isol
 ### Fluxo de Autenticação Multi-Tenant
 
 ```
-1. Usuário faz login via Manus OAuth
+1. Usuário faz login via Supabase Auth
 2. JWT é gerado com claims customizados incluindo tenant_id
 3. No backend, tenant_id é extraído do JWT e adicionado ao contexto
 4. Todas as queries são automaticamente filtradas por tenant_id via RLS
@@ -112,9 +112,9 @@ SUPABASE_URL=https://[project-id].supabase.co
 SUPABASE_ANON_KEY=[anon-key]
 SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
 
-# OAuth (Manus)
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
+# OAuth (Supabase Auth)
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
 VITE_APP_ID=[seu-app-id]
 
 # JWT
@@ -333,8 +333,8 @@ SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 
 # OAuth
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
 VITE_APP_ID=...
 
 # Security

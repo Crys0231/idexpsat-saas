@@ -8,7 +8,7 @@ IDExpSat é uma plataforma SaaS moderna para gerenciamento de pesquisas de satis
 
 ### 🔐 Autenticação Multi-Tenant
 - Isolamento total de dados entre tenants via Row Level Security (RLS)
-- Autenticação OAuth integrada
+- Autenticação Supabase integrada
 - Extração automática de `tenant_id` do JWT
 - Middleware de validação de tenant em todas as operações
 
@@ -95,11 +95,13 @@ idexpsat-saas/
 ### 1. Fluxo de Autenticação Multi-Tenant
 
 ```
-Usuário Login
+Novo Usuário Request Acesso
     ↓
-OAuth Callback
+Usuário criado no Supabase Auth + Conta "PENDING"
     ↓
-JWT com tenant_id
+SuperAdmin recebe notificação e Aprova ("APPROVED")
+    ↓
+Usuário Login via Supabase Auth
     ↓
 Middleware extrai tenant_id
     ↓
@@ -198,10 +200,10 @@ SUPABASE_URL=https://...
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 
-# OAuth
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
-VITE_APP_ID=...
+# Supabase
+VITE_SUPABASE_URL=https://...
+VITE_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 
 # Security
 JWT_SECRET=...

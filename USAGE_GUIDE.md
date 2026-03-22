@@ -138,7 +138,7 @@ drizzle/
 
 ```typescript
 // Exemplo: Adicionar tabela de feedback
-export const feedbacks = mysqlTable("feedbacks", {
+export const feedbacks = PostgreSQLTable("feedbacks", {
   id: varchar("id", { length: 36 }).primaryKey(),
   tenant_id: varchar("tenant_id", { length: 36 }).notNull(),
   pesquisa_id: varchar("pesquisa_id", { length: 36 }).notNull(),

@@ -81,8 +81,8 @@ SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # OAuth
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
 VITE_APP_ID=your-app-id
 
 # Security
@@ -254,8 +254,8 @@ SUPABASE_ANON_KEY=[sua-chave-anon]
 SUPABASE_SERVICE_ROLE_KEY=[sua-chave-service-role]
 
 # OAuth
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
+VITE_SUPABASE_URL=https://[project-id].supabase.co
+VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
 VITE_APP_ID=[seu-app-id]
 
 # Security
@@ -297,7 +297,7 @@ curl https://seu-projeto.vercel.app
 
 1. Acesse sua URL de produção
 2. Clique em **"Login"**
-3. Faça login com suas credenciais Manus
+3. Faça login com suas credenciais Supabase Auth
 4. Você deve ser redirecionado para o dashboard
 
 ### 4.2 Testar Upload de CSV
