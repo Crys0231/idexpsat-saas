@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, AlertCircle, CheckCircle } from "lucide-react";
 
 /**
@@ -14,6 +15,7 @@ import { Loader2, Upload, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function CSVUpload() {
   const [file, setFile] = useState<File | null>(null);
+  const [surveyType, setSurveyType] = useState<"VENDA" | "POS_VENDA">("VENDA");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -51,6 +53,7 @@ export default function CSVUpload() {
       await uploadMutation.mutateAsync({
         filename: file.name,
         content,
+        tipoPesquisaString: surveyType,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to read file");
@@ -70,6 +73,22 @@ export default function CSVUpload() {
           onChange={handleFileChange}
           className="max-w-xs mx-auto"
         />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700">Tipo da Pesquisa</label>
+        <Select 
+          value={surveyType} 
+          onValueChange={(val: "VENDA" | "POS_VENDA") => setSurveyType(val)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione o tipo..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="VENDA">Venda</SelectItem>
+            <SelectItem value="POS_VENDA">Pós Venda</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {file && (

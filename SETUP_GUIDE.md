@@ -126,13 +126,25 @@ SUPABASE_URL=https://[project-id].supabase.co
 SUPABASE_ANON_KEY=[sua-chave-anon]
 SUPABASE_SERVICE_ROLE_KEY=[sua-chave-service-role]
 
+# Email Notification (Nodemailer for Approvals)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=devprojects566@gmail.com
+SMTP_PASS=suasenha-app-senha
+SMTP_SECURE=false
+
+# WhatsApp Integration (Evolution API)
+EVOLUTION_API_URL=https://sua-evolution-api.com
+EVOLUTION_API_KEY=sua-api-key-global
+EVOLUTION_INSTANCE_NAME=idexpsat
+
 # OAuth (Manus)
 OAUTH_SERVER_URL=https://api.manus.im
 VITE_OAUTH_PORTAL_URL=https://portal.manus.im
 VITE_APP_ID=[seu-app-id-manus]
 
-# JWT
-JWT_SECRET=$(openssl rand -base64 32)
+# App URLs
+VITE_APP_URL=http://localhost:5173
 
 # Node
 NODE_ENV=development

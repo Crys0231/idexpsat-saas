@@ -3,6 +3,7 @@ import { tenantProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
+import { sendSurveyWhatsAppNotification } from "../_core/whatsapp";
 
 /**
  * ============================================================================
@@ -20,6 +21,9 @@ import { TRPCError } from "@trpc/server";
 const CSV_UPLOAD_SCHEMA = z.object({
   filename: z.string().min(1, "Filename is required"),
   content: z.string().min(1, "CSV content is required"),
+  tipoPesquisaString: z.enum(["VENDA", "POS_VENDA"], {
+    required_error: "Tipo de pesquisa é obrigatório",
+  }),
 });
 
 type CSVUploadInput = z.infer<typeof CSV_UPLOAD_SCHEMA>;
@@ -43,23 +47,7 @@ interface ProcessingResult {
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Extract survey type from filename
- * VD_ prefix = VENDA
- * PV_ prefix = POS_VENDA
- */
-function extractSurveyTypeFromFilename(filename: string): string {
-  const name = filename.split(".")[0].toUpperCase();
 
-  if (name.startsWith("PV_")) {
-    return "POS_VENDA";
-  }
-  if (name.startsWith("VD_")) {
-    return "VENDA";
-  }
-
-  return "VENDA"; // Default
-}
 
 /**
  * Extract brand from filename
@@ -156,11 +144,10 @@ export const csvRouter = router({
     .input(CSV_UPLOAD_SCHEMA)
     .mutation(async ({ ctx, input }): Promise<ProcessingResult> => {
       const { tenantId } = ctx.tenant;
-      const { filename, content } = input;
+      const { filename, content, tipoPesquisaString } = input;
 
       try {
         // Extract metadata from filename
-        const surveyType = extractSurveyTypeFromFilename(filename);
         const brand = extractBrandFromFilename(filename);
 
         // Parse CSV
@@ -191,7 +178,7 @@ export const csvRouter = router({
         }
 
         // Get or create survey type
-        const tipoPesquisaId = await db.getOrCreateTipoPesquisa(tenantId, surveyType);
+        const tipoPesquisaId = await db.getOrCreateTipoPesquisa(tenantId, tipoPesquisaString);
         if (!tipoPesquisaId) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -275,6 +262,15 @@ export const csvRouter = router({
                 error: "Failed to create survey",
               });
               continue;
+            }
+
+            // Send WhatsApp notification
+            if (telefone) {
+              const clientName = row.NOME?.trim() || "Cliente";
+              // Background, não await para não desacelerar o processo total
+              sendSurveyWhatsAppNotification(telefone, pesquisa.token, clientName).catch(e => {
+                console.error("Erro assincrono WhatsApp:", e);
+              });
             }
 
             result.processedRows++;

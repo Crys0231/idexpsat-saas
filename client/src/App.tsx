@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SurveyResponse from "./pages/SurveyResponse";
 import Dashboard from "./pages/Dashboard";
+import FirstAccess from "./pages/FirstAccess";
+import SuperAdmin from "./pages/SuperAdmin";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/first-access" component={FirstAccess} />
+      <Route path="/superadmin" component={SuperAdmin} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/pesquisa/:token" component={SurveyResponse} />
       <Route path="/404" component={NotFound} />

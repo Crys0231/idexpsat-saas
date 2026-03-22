@@ -15,6 +15,13 @@
       "when": 1774126290731,
       "tag": "0001_lethal_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774137658726,
+      "tag": "0002_hesitant_invaders",
+      "breakpoints": true
     }
   ]
 }
