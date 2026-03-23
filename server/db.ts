@@ -13,7 +13,7 @@ import {
   perguntas,
   tiposPesquisa,
   respostas,
-  notificacoes, // FIX: agora exportado corretamente pelo schema
+  notificacoes,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { randomUUID } from "crypto";
@@ -51,14 +51,10 @@ export async function upsertUser(
     const values: InsertUser = {
       tenantId: user.tenantId,
       email: user.email,
-      // FIX: openId agora existe no schema e é persistido corretamente
       openId: user.openId,
     };
-    const updateSet: Record<string, unknown> = {
-      openId: user.openId,
-    };
+    const updateSet: Record<string, unknown> = { openId: user.openId };
 
-    // FIX: name e lastSignedIn agora existem no schema
     if (user.name !== undefined) {
       values.name = user.name;
       updateSet.name = user.name;
@@ -91,7 +87,21 @@ export async function upsertUser(
   }
 }
 
-// FIX: função getUserByOpenId adicionada — era chamada em sdk.ts mas não existia
+/** Busca usuário pelo UUID do Supabase Auth (campo id) */
+export async function getUserById(id: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/** Busca usuário pelo open_id OAuth legado (mantido por compatibilidade) */
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
@@ -122,6 +132,17 @@ export async function getUserByEmail(email: string) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+/** Atualiza last_signed_in sem fazer upsert completo — chamado a cada request autenticado */
+export async function updateLastSignedIn(userId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .update(users)
+    .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
 }
 
 // ============================================================================
@@ -170,13 +191,7 @@ export async function getOrCreateCliente(
     }
 
     const clienteId = randomUUID();
-    await db.insert(clientes).values({
-      id: clienteId,
-      tenantId,
-      telefone,
-      nome,
-      cidade,
-    });
+    await db.insert(clientes).values({ id: clienteId, tenantId, telefone, nome, cidade });
     return clienteId;
   } catch (error) {
     console.error("[Database] Failed to process cliente:", error);
@@ -213,13 +228,7 @@ export async function getOrCreateVeiculo(
     }
 
     const veiculoId = randomUUID();
-    await db.insert(veiculos).values({
-      id: veiculoId,
-      tenantId,
-      placa,
-      modelo,
-      marcaId,
-    });
+    await db.insert(veiculos).values({ id: veiculoId, tenantId, placa, modelo, marcaId });
     return veiculoId;
   } catch (error) {
     console.error("[Database] Failed to process veiculo:", error);
@@ -242,16 +251,10 @@ export async function getOrCreateMarca(tenantId: string, nome: string) {
       .where(and(eq(marcas.tenantId, tenantId), eq(marcas.nome, nome)))
       .limit(1);
 
-    if (existing.length > 0) {
-      return existing[0].id;
-    }
+    if (existing.length > 0) return existing[0].id;
 
     const marcaId = randomUUID();
-    await db.insert(marcas).values({
-      id: marcaId,
-      tenantId,
-      nome,
-    });
+    await db.insert(marcas).values({ id: marcaId, tenantId, nome });
     return marcaId;
   } catch (error) {
     console.error("[Database] Failed to process marca:", error);
@@ -274,9 +277,7 @@ export async function getOrCreateTipoPesquisa(tenantId: string, nome: string) {
       .where(and(eq(tiposPesquisa.tenantId, tenantId), eq(tiposPesquisa.nome, nome)))
       .limit(1);
 
-    if (existing.length > 0) {
-      return existing[0].id;
-    }
+    if (existing.length > 0) return existing[0].id;
 
     const tipoPesquisaId = randomUUID();
     await db.insert(tiposPesquisa).values({
@@ -297,8 +298,7 @@ export async function getOrCreateTipoPesquisa(tenantId: string, nome: string) {
 // ============================================================================
 
 export function gerarHashCompra(clienteId: string, veiculoId: string, tipoPesquisaId: string): string {
-  const dados = `${clienteId}_${veiculoId}_${tipoPesquisaId}`;
-  return createHash("sha256").update(dados).digest("hex");
+  return createHash("sha256").update(`${clienteId}_${veiculoId}_${tipoPesquisaId}`).digest("hex");
 }
 
 export async function getOrCreateCompra(
@@ -320,9 +320,7 @@ export async function getOrCreateCompra(
       .where(and(eq(compras.tenantId, tenantId), eq(compras.hashCompra, hashCompra)))
       .limit(1);
 
-    if (existing.length > 0) {
-      return existing[0].id;
-    }
+    if (existing.length > 0) return existing[0].id;
 
     const compraId = randomUUID();
     await db.insert(compras).values({
@@ -345,11 +343,7 @@ export async function getOrCreateCompra(
 // PESQUISA MANAGEMENT
 // ============================================================================
 
-export async function createPesquisa(
-  tenantId: string,
-  compraId: string,
-  tipoPesquisaId: string
-) {
+export async function createPesquisa(tenantId: string, compraId: string, tipoPesquisaId: string) {
   const db = await getDb();
   if (!db) return null;
 
@@ -397,13 +391,11 @@ export async function getPerguntasByTipoPesquisa(tipoPesquisaId: string) {
   if (!db) return [];
 
   try {
-    const result = await db
+    return await db
       .select()
       .from(perguntas)
       .where(and(eq(perguntas.tipoPesquisaId, tipoPesquisaId), eq(perguntas.ativa, true)))
       .orderBy(perguntas.ordem);
-
-    return result;
   } catch (error) {
     console.error("[Database] Failed to get perguntas:", error);
     return [];
@@ -438,7 +430,6 @@ export async function createResposta(
       sentimento: (sentimento as any) ?? null,
       temas,
     });
-
     return respostaId;
   } catch (error) {
     console.error("[Database] Failed to create resposta:", error);
@@ -455,7 +446,6 @@ export async function markPesquisaAsAnswered(pesquisaId: string) {
       .update(pesquisas)
       .set({ respondida: true, dataResposta: new Date() })
       .where(eq(pesquisas.id, pesquisaId));
-
     return true;
   } catch (error) {
     console.error("[Database] Failed to mark pesquisa as answered:", error);
@@ -465,12 +455,11 @@ export async function markPesquisaAsAnswered(pesquisaId: string) {
 
 // ============================================================================
 // NOTIFICACAO MANAGEMENT
-// FIX: userId era number — corrigido para string (uuid) para bater com o schema
 // ============================================================================
 
 export async function createNotificacao(
   tenantId: string,
-  userId: string, // FIX: era number, mas o schema usa uuid (string)
+  userId: string,
   pesquisaId: string,
   titulo: string,
   conteudo: string
@@ -489,7 +478,6 @@ export async function createNotificacao(
       conteudo,
       lida: false,
     });
-
     return notificacaoId;
   } catch (error) {
     console.error("[Database] Failed to create notificacao:", error);

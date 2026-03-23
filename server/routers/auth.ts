@@ -1,27 +1,35 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { publicProcedure, router, adminProcedure } from "../_core/trpc";
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "../_core/cookies";
 import { supabaseAdmin } from "../_core/supabase";
 import * as db from "../db";
 import { sendApprovalRequestEmail } from "../_core/email";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { users, tenants, userTenants } from "../../drizzle/schema";
-import type { Response } from "express";
 
 export const authRouter = router({
+  /**
+   * Retorna o usuário atual (null se não autenticado).
+   * O frontend usa isso para hidratar o estado de auth após login.
+   */
   me: publicProcedure.query((opts) => opts.ctx.user),
 
-  logout: publicProcedure.mutation(({ ctx }) => {
-    const cookieOptions = getSessionCookieOptions(ctx.req);
-    // FIX: cast explícito para Response do express — o tipo do ctx.res pode não
-    // incluir clearCookie dependendo de como o contexto tRPC está tipado
-    (ctx.res as Response).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+  /**
+   * Logout: o Supabase Auth é gerenciado pelo frontend via supabase.auth.signOut().
+   * Este endpoint existe apenas para limpeza server-side futura (ex: blacklist de tokens).
+   */
+  logout: publicProcedure.mutation(() => {
+    // O cliente Supabase no frontend chama supabase.auth.signOut() que invalida
+    // a sessão diretamente no Supabase. Não há cookie server-side para limpar.
     return { success: true } as const;
   }),
 
+  /**
+   * Solicita acesso ao sistema.
+   * Cria o usuário no Supabase Auth + registra na nossa DB com status PENDING.
+   * Um admin precisa aprovar antes do usuário conseguir logar com acesso pleno.
+   */
   requestAccess: publicProcedure
     .input(z.object({
       email: z.string().email(),
@@ -32,10 +40,7 @@ export const authRouter = router({
       const { email, password, tenantName } = input;
 
       try {
-        // FIX: supabaseAdmin.auth.admin — em @supabase/supabase-js v2 o .admin
-        // só existe no GoTrueAdminApi, acessível via service role key.
-        // O cast para (any) resolve o erro TS2339 causado por tipagem estrita
-        // do TypeScript 5.9 com esta versão do SDK.
+        // 1. Cria usuário no Supabase Auth
         const adminAuth = (supabaseAdmin.auth as any).admin;
         const { data: authData, error: authError } = await adminAuth.createUser({
           email,
@@ -46,7 +51,7 @@ export const authRouter = router({
         if (authError || !authData?.user) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: authError?.message || "Failed to create user in Auth provider",
+            message: authError?.message || "Failed to create user in Supabase Auth",
           });
         }
 
@@ -57,53 +62,48 @@ export const authRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB Connection failed" });
         }
 
+        // 2. Cria o Tenant
         const tenantId = randomUUID();
-        await database.insert(tenants).values({
-          id: tenantId,
-          nome: tenantName,
-        });
+        await database.insert(tenants).values({ id: tenantId, nome: tenantName });
 
+        // 3. Cria o usuário na nossa DB com status PENDING
+        // O id é o mesmo do Supabase Auth para facilitar o lookup no context.ts
         await database.insert(users).values({
           id: userId,
-          tenantId: tenantId,
-          email: email,
+          tenantId,
+          email,
           role: "admin",
           pendingAccess: "PENDING",
         });
 
-        await database.insert(userTenants).values({
-          userId: userId,
-          tenantId: tenantId,
-          role: "admin",
-        });
+        // 4. Cria o vínculo User <-> Tenant
+        await database.insert(userTenants).values({ userId, tenantId, role: "admin" });
 
+        // 5. Notifica admin por email
         await sendApprovalRequestEmail(email, tenantName);
 
-        return { success: true, message: "Access requested successfully. Pending approval." };
+        return { success: true, message: "Acesso solicitado com sucesso. Aguardando aprovação." };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         console.error("Error in requestAccess:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "An error occurred while requesting access.",
+          message: "Erro ao solicitar acesso.",
         });
       }
     }),
 
+  // Lista usuários com acesso pendente (somente admin)
   listPendingUsers: adminProcedure.query(async () => {
     const database = await db.getDb();
     if (!database) return [];
-    const pendingUsers = await database
-      .select()
-      .from(users)
-      .where(eq(users.pendingAccess, "PENDING"));
-    return pendingUsers;
+    return database.select().from(users).where(eq(users.pendingAccess, "PENDING"));
   }),
 
+  // Aprova acesso de um usuário (somente admin)
   approveAccess: adminProcedure
     .input(z.object({ userId: z.string().uuid() }))
-    .mutation(async ({ input }: { input: { userId: string } }) => {
-      const { userId } = input;
+    .mutation(async ({ input }) => {
       const database = await db.getDb();
       if (!database) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB Connection failed" });
@@ -111,7 +111,7 @@ export const authRouter = router({
       await database
         .update(users)
         .set({ pendingAccess: "APPROVED" })
-        .where(eq(users.id, userId));
+        .where(eq(users.id, input.userId));
 
       return { success: true };
     }),
