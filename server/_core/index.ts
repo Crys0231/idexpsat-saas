@@ -8,6 +8,27 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
+// FIX: app criado no escopo do módulo e exportado como default
+// Antes era criado dentro de startServer() e nunca exportado,
+// causando "Module has no default export" em api/index.ts (entrada do Vercel)
+export const app = express();
+
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+registerOAuthRoutes(app);
+app.use(
+  "/api/trpc",
+  createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  })
+);
+
+// Export default para api/index.ts (Vercel serverless handler)
+export default app;
+
+// ─── Servidor local (dev / non-Vercel) ───────────────────────────────────────
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -28,22 +49,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // OAuth callback under /api/oauth/callback
-  registerOAuthRoutes(app);
-  // tRPC API
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-    })
-  );
-  // development mode uses Vite, production mode uses static files
+
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
@@ -62,4 +69,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+// Só sobe o servidor HTTP quando não estiver rodando como serverless no Vercel
+if (!process.env.VERCEL) {
+  startServer().catch(console.error);
+}

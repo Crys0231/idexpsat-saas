@@ -13,7 +13,7 @@ import {
   perguntas,
   tiposPesquisa,
   respostas,
-  notificacoes,
+  notificacoes, // FIX: agora exportado corretamente pelo schema
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { randomUUID } from "crypto";
@@ -21,7 +21,6 @@ import { createHash } from "crypto";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -39,8 +38,9 @@ export async function getDb() {
 // USER MANAGEMENT
 // ============================================================================
 
-export async function upsertUser(user: Partial<InsertUser> & { openId: string; tenantId: string; email: string }): Promise<void> {
-
+export async function upsertUser(
+  user: Partial<InsertUser> & { openId: string; tenantId: string; email: string }
+): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
@@ -51,10 +51,23 @@ export async function upsertUser(user: Partial<InsertUser> & { openId: string; t
     const values: InsertUser = {
       tenantId: user.tenantId,
       email: user.email,
+      // FIX: openId agora existe no schema e é persistido corretamente
+      openId: user.openId,
     };
-    const updateSet: Record<string, unknown> = {};
+    const updateSet: Record<string, unknown> = {
+      openId: user.openId,
+    };
 
+    // FIX: name e lastSignedIn agora existem no schema
+    if (user.name !== undefined) {
+      values.name = user.name;
+      updateSet.name = user.name;
+    }
 
+    if ((user as any).lastSignedIn !== undefined) {
+      values.lastSignedIn = (user as any).lastSignedIn;
+      updateSet.lastSignedIn = (user as any).lastSignedIn;
+    }
 
     if (user.role !== undefined) {
       values.role = user.role;
@@ -76,6 +89,23 @@ export async function upsertUser(user: Partial<InsertUser> & { openId: string; t
     console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
+}
+
+// FIX: função getUserByOpenId adicionada — era chamada em sdk.ts mas não existia
+export async function getUserByOpenId(openId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserByEmail(email: string) {
@@ -125,7 +155,6 @@ export async function getOrCreateCliente(
   if (!db) return null;
 
   try {
-    // Try to find existing client
     const existing = await db
       .select()
       .from(clientes)
@@ -133,7 +162,6 @@ export async function getOrCreateCliente(
       .limit(1);
 
     if (existing.length > 0) {
-      // Update existing client
       await db
         .update(clientes)
         .set({ nome, cidade, updatedAt: new Date() })
@@ -141,7 +169,6 @@ export async function getOrCreateCliente(
       return existing[0].id;
     }
 
-    // Create new client
     const clienteId = randomUUID();
     await db.insert(clientes).values({
       id: clienteId,
@@ -171,7 +198,6 @@ export async function getOrCreateVeiculo(
   if (!db) return null;
 
   try {
-    // Try to find existing vehicle
     const existing = await db
       .select()
       .from(veiculos)
@@ -179,7 +205,6 @@ export async function getOrCreateVeiculo(
       .limit(1);
 
     if (existing.length > 0) {
-      // Update existing vehicle
       await db
         .update(veiculos)
         .set({ modelo, marcaId, updatedAt: new Date() })
@@ -187,7 +212,6 @@ export async function getOrCreateVeiculo(
       return existing[0].id;
     }
 
-    // Create new vehicle
     const veiculoId = randomUUID();
     await db.insert(veiculos).values({
       id: veiculoId,
@@ -290,7 +314,6 @@ export async function getOrCreateCompra(
   try {
     const hashCompra = gerarHashCompra(clienteId, veiculoId, tipoPesquisaId);
 
-    // Try to find existing purchase
     const existing = await db
       .select()
       .from(compras)
@@ -301,7 +324,6 @@ export async function getOrCreateCompra(
       return existing[0].id;
     }
 
-    // Create new purchase
     const compraId = randomUUID();
     await db.insert(compras).values({
       id: compraId,
@@ -443,11 +465,12 @@ export async function markPesquisaAsAnswered(pesquisaId: string) {
 
 // ============================================================================
 // NOTIFICACAO MANAGEMENT
+// FIX: userId era number — corrigido para string (uuid) para bater com o schema
 // ============================================================================
 
 export async function createNotificacao(
   tenantId: string,
-  userId: number,
+  userId: string, // FIX: era number, mas o schema usa uuid (string)
   pesquisaId: string,
   titulo: string,
   conteudo: string
@@ -473,5 +496,3 @@ export async function createNotificacao(
     return null;
   }
 }
-
-// TODO: Add more feature queries as your schema grows.

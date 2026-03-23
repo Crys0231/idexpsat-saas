@@ -28,17 +28,19 @@ export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = typeof tenants.$inferInsert;
 
 // ============================================================================
-// USER MANAGEMENT 
+// USER MANAGEMENT
 // ============================================================================
 
-// auth.users is the Supabase auth schema. 
-// We define our public.users here which holds app specific data.
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
   email: varchar("email").notNull().unique(),
+  // FIX: openId adicionado para suporte ao fluxo OAuth customizado (sdk.ts/oauth.ts)
+  openId: varchar("open_id").unique(),
+  // FIX: name e lastSignedIn adicionados — usados em upsertUser, sdk.ts e oauth.ts
+  name: varchar("name"),
+  lastSignedIn: timestamp("last_signed_in", { mode: 'date' }),
   role: varchar("role").notNull().default("admin"),
-  // Note: pending_access is a new column we are adding to the user's base
   pendingAccess: pendingStatusEnum("pending_access").notNull().default("APPROVED"),
   createdAt: timestamp("created_at", { mode: 'date' }).defaultNow(),
 });
@@ -189,11 +191,29 @@ export type Resposta = typeof respostas.$inferSelect;
 export type InsertResposta = typeof respostas.$inferInsert;
 
 // ============================================================================
+// NOTIFICATIONS
+// FIX: tabela notificacoes adicionada — estava sendo importada em db.ts mas não existia no schema
+// FIX: userId era number em db.ts (createNotificacao), corrigido para uuid/string
+// ============================================================================
+
+export const notificacoes = pgTable("notificacoes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  userId: uuid("user_id").notNull(),
+  pesquisaId: uuid("pesquisa_id").references(() => pesquisas.id),
+  titulo: varchar("titulo").notNull(),
+  conteudo: text("conteudo"),
+  lida: boolean("lida").default(false),
+  createdAt: timestamp("created_at", { mode: 'date' }).defaultNow(),
+});
+
+export type Notificacao = typeof notificacoes.$inferSelect;
+export type InsertNotificacao = typeof notificacoes.$inferInsert;
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
-// Optional Drizzle relations, matching what you had before natively where possible.
-// Minimal relations are defined given the strict schema matching
 export const usersRelations = relations(users, ({ one }) => ({
   tenant: one(tenants, {
     fields: [users.tenantId],
