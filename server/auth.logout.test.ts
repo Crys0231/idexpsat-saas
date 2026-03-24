@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { COOKIE_NAME } from "../shared/const";
+import { randomUUID } from "crypto";
 import type { TrpcContext } from "./_core/context";
 
 type CookieCall = {
@@ -13,12 +14,15 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
   const clearedCookies: CookieCall[] = [];
 
+
+
   const user: AuthenticatedUser = {
-    id: 1,
+    id: randomUUID(),
+    tenantId: randomUUID(),
     openId: "sample-user",
     email: "sample@example.com",
     name: "Sample User",
-    loginMethod: "manus",
+    pendingAccess: "APPROVED",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),

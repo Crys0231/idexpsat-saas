@@ -89,17 +89,15 @@ export default function Signup() {
 
       // 3. Criar usuário no banco de dados com tenant_id
       const { error: userError } = await supabase.from("users").insert({
-        id: Math.floor(Math.random() * 1000000),
         open_id: authData.user.id,
         tenant_id: tenantId,
         email: authData.user.email,
         name: tenantName,
-        role: "admin", // Primeiro usuário é admin
+        role: "admin",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         last_signed_in: new Date().toISOString(),
       });
-
       if (userError) {
         setError(`Erro ao criar usuário: ${userError.message}`);
         setLoading(false);

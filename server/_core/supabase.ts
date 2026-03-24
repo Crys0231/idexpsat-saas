@@ -3,7 +3,7 @@ import { ENV } from "./env";
 
 /**
  * ============================================================================
- * SUPABASE CLIENT (BACKEND)
+ * SUPABASE CLIENT (BACKEND ADMIN)
  * ============================================================================
  *
  * Cliente Supabase para o backend com credenciais de service role
@@ -12,13 +12,15 @@ import { ENV } from "./env";
 
 const supabaseUrl = ENV.supabaseUrl;
 const supabaseServiceRoleKey = ENV.supabaseServiceRoleKey;
+const supabaseAnonKey = ENV.supabaseAnonKey; // adicione no seu ENV
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
+if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseAnonKey) {
   throw new Error(
-    "Missing Supabase environment variables. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+    "Missing Supabase environment variables. Please check SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY"
   );
 }
 
+// Admin: NUNCA expor no frontend
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: {
     autoRefreshToken: false,
@@ -26,8 +28,33 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   },
 });
 
+// Client “normal” com Auth integrado (para frontend ou rotas autenticadas)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+});
+
 /**
- * Obter usuário do Supabase Auth pelo JWT
+ * Exemplo de uso no tRPC client (frontend):
+ *
+ * const trpcClient = createTRPCProxyClient<AppRouter>({
+ *   links: [
+ *     httpBatchLink({
+ *       url: "/api/trpc",
+ *       headers: async () => {
+ *         const { data } = await supabase.auth.getSession();
+ *         const token = data.session?.access_token;
+ *         return token ? { Authorization: `Bearer ${token}` } : {};
+ *       },
+ *     }),
+ *   ],
+ * });
+ */
+
+/**
+ * Obter usuário do Supabase Auth pelo JWT (backend)
  */
 export async function getUserFromJWT(token: string) {
   try {

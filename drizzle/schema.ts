@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   role: varchar("role").notNull().default("admin"),
   pendingAccess: pendingStatusEnum("pending_access").notNull().default("APPROVED"),
   createdAt: timestamp("created_at", { mode: 'date' }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'date' }).defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;
